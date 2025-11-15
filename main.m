@@ -5,6 +5,7 @@ clear; clc; close all;
 addpath(genpath(pwd));
 
 fprintf('Starting Dual-Arm Exoskeleton (YuMi) Assignment...\n\n');
+fprintf('Running FK derivation demo...\n'); deriveFK();
 
 % --- Part 2: Workspace ---
 fprintf('Running Part 2: Workspace Analysis...\n');
@@ -34,3 +35,5 @@ catch e
 end
 
 fprintf('All tasks executed.\n');
+demoIK;
+

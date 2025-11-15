@@ -16,12 +16,10 @@ objL = 0.14;                    % length (x)
 objH = 0.10;                    % height (z)
 
 % ---------- Target poses: side approach + small roll to avoid collision ----------
-% Approach from +/-y with slight +/-x offset so wrists don't collide
 sideOffsetX = 0.05;               % meters
 pL = objCenter + [ sideOffsetX;  objW/2; 0];
 pR = objCenter + [-sideOffsetX; -objW/2; 0];
 
-% Orientations: inward pitch 90deg; add small opposite roll (±15°) to open wrists
 roll = deg2rad(15);
 R_L  = eul2rotm([0,  pi/2,  roll]);    % ZYX: yaw=0, pitch=+90°, roll=+15°
 R_R  = eul2rotm([0, -pi/2, -roll]);    % yaw=0, pitch=-90°, roll=-15°
@@ -37,91 +35,87 @@ if info.ExitFlag <= 0
 end
 
 % ---------- Trajectory params ----------
-segmentT=5; fps=30; stepsPerSeg=segmentT*fps;
+segmentT   = 5; 
+fps        = 30; 
+steps      = segmentT*fps;
+t_samples  = linspace(0, segmentT, steps);
 
+% ---------- Prepare video if requested ----------
 [writer, rec] = openVideoIfPossible('report/Animation2_Grasp_YuMi', fps, opts.saveVideo);
 
 % ---------- Figure & object drawing ----------
 fig = figure('Name','Animation 2: Bi-Manual Grasp (YuMi)');
 ax  = axes('Parent',fig); cla(ax); hold(ax,'on');
 show(robot, q_home, 'Parent', ax, 'PreservePlot', false, 'Frames','off');
+drawnow;
 title(ax,'Animation 2: Bi-Manual Grasp (YuMi)');
 axis(ax, [-0.2 1.0 -0.6 0.6 -0.1 0.8]); axis(ax,'equal'); grid(ax,'on'); view(ax,60,15);
 camlight(ax,'headlight'); lighting(ax,'gouraud');
 
-drawBox(ax, objCenter, [objL objW objH], [0.1 0.7 0.2], 0.6, [0 0 0]); % green translucent
+drawBox(ax, objCenter, [objL objW objH], [0.1 0.7 0.2], 0.6, [0 0 0]);
 
-% ---------- Dynamic path buffers (no fixed-size overflow) ----------
-pathL = zeros(0,3); pathR = zeros(0,3);
+% ---------- Pre-allocate storage ----------
+pathL = zeros(0,3);
+pathR = zeros(0,3);
+allQ  = zeros(0,14);
 
-% Loop home->goal->home continuously
-t0=tic;
+t0 = tic;
 while toc(t0) < opts.duration
-    % A) home -> goal
-    [qAB,~,~]=quinticpolytraj([q_home' q_goal'], [0 segmentT], linspace(0,segmentT,stepsPerSeg));
-    qAB=qAB.'; 
-    for i=1:size(qAB,1)
+    %% A) home -> goal
+    [qAB, ~, ~] = quinticpolytraj([q_home' q_goal'], [0 segmentT], t_samples);
+    qAB = qAB.';                      % [steps x 14]
+    allQ = [allQ; qAB];              %#ok<AGROW>
+    for i = 1:size(qAB,1)
         show(robot, qAB(i,:), 'Parent', ax, 'PreservePlot', false, 'Frames','off', 'FastUpdate', true);
+        drawnow;  % <-- force screen update
         [~,~, pLnow, pRnow] = kinematics.getDualArmPose(robot, qAB(i,:));
-        pathL(end+1,:) = pLnow';  %#ok<AGROW>
-        pathR(end+1,:) = pRnow';  %#ok<AGROW>
+        pathL(end+1,:) = pLnow';     %#ok<AGROW>
+        pathR(end+1,:) = pRnow';     %#ok<AGROW>
         if rec, writeVideo(writer, getframe(fig)); end
-        drawnow;
         if toc(t0)>=opts.duration, break; end
     end
     if toc(t0)>=opts.duration, break; end
 
-    % B) goal -> home
-    [qBA,~,~]=quinticpolytraj([q_goal' q_home'], [0 segmentT], linspace(0,segmentT,stepsPerSeg));
-    qBA=qBA.';
-    for i=1:size(qBA,1)
+    %% B) goal -> home
+    [qBA, ~, ~] = quinticpolytraj([q_goal' q_home'], [0 segmentT], t_samples);
+    qBA = qBA.';                      % [steps x 14]
+    allQ = [allQ; qBA];              %#ok<AGROW>
+    for i = 1:size(qBA,1)
         show(robot, qBA(i,:), 'Parent', ax, 'PreservePlot', false, 'Frames','off', 'FastUpdate', true);
+        drawnow;  % <-- force screen update
         [~,~, pLnow, pRnow] = kinematics.getDualArmPose(robot, qBA(i,:));
-        pathL(end+1,:) = pLnow';  %#ok<AGROW>
-        pathR(end+1,:) = pRnow';  %#ok<AGROW>
+        pathL(end+1,:) = pLnow';     %#ok<AGROW>
+        pathR(end+1,:) = pRnow';     %#ok<AGROW>
         if rec, writeVideo(writer, getframe(fig)); end
-        drawnow;
         if toc(t0)>=opts.duration, break; end
     end
 end
+
+% ---------- Close video writer ----------
+if rec, close(writer); end
 hold(ax,'off');
 
-% Deliverable plots
+% ---------- Deliverable plots ----------
 utils.plotEETrajectories(pathL, pathR, objCenter);
 
-% Build time vector for joint plots (not recording q here; just a placeholder consistent size)
-t_vec = (0:size(pathL,1)-1)'/fps;
-utils.plotJointsVsTime(t_vec, zeros(numel(t_vec),14), zeros(numel(t_vec),14));
+% Build time vector & compute velocities
+t_vec   = (0:size(allQ,1)-1)'/fps;
+qd_traj = [zeros(1,14); diff(allQ)] * fps;
 
-if rec, close(writer); end
+utils.plotJointsVsTime(t_vec, allQ, qd_traj);
+
 end
 
-% ----------- helpers -----------
+
+%% Helper to draw the object box
 function drawBox(ax, center, dims, faceColor, alpha, edgeColor)
-% dims = [Lx Ly Lz]
-Lx=dims(1); Ly=dims(2); Lz=dims(3);
-cx=center(1); cy=center(2); cz=center(3);
-% vertices
-x = cx + 0.5*[-Lx -Lx -Lx -Lx  Lx  Lx  Lx  Lx];
-y = cy + 0.5*[-Ly -Ly  Ly  Ly -Ly -Ly  Ly  Ly];
-z = cz + 0.5*[-Lz  Lz  Lz -Lz -Lz  Lz  Lz -Lz];
-V = [x(:) y(:) z(:)];
-F = [1 2 3 4; 5 6 7 8; 1 2 6 5; 2 3 7 6; 3 4 8 7; 4 1 5 8];
-patch('Parent',ax,'Faces',F,'Vertices',V,'FaceColor',faceColor,...
-      'FaceAlpha',alpha,'EdgeColor',edgeColor,'LineWidth',1.5);
-end
-
-function [vw, recording] = openVideoIfPossible(baseName, fps, wantSave)
-vw=[]; recording=false; if ~wantSave, return; end
-if ~exist('report','dir'), mkdir report; end
-try
-    profs=string({VideoWriter.getProfiles.Name});
-    if any(profs=="MPEG-4"), vw=VideoWriter([baseName '.mp4'],'MPEG-4');
-    elseif any(profs=="Motion JPEG AVI"), vw=VideoWriter([baseName '.avi'],'Motion JPEG AVI');
-    else, warning('No video profile; running without recording.'); return;
-    end
-    vw.FrameRate=fps; open(vw); recording=true;
-catch ME
-    warning('Video off: %s', ME.message);
-end
+  Lx=dims(1); Ly=dims(2); Lz=dims(3);
+  cx=center(1); cy=center(2); cz=center(3);
+  x = cx + 0.5*[-Lx -Lx -Lx -Lx  Lx  Lx  Lx  Lx];
+  y = cy + 0.5*[-Ly -Ly  Ly  Ly -Ly -Ly  Ly  Ly];
+  z = cz + 0.5*[-Lz  Lz  Lz -Lz -Lz  Lz  Lz -Lz];
+  V = [x(:) y(:) z(:)];
+  F = [1 2 3 4; 5 6 7 8; 1 2 6 5; 2 3 7 6; 3 4 8 7; 4 1 5 8];
+  patch('Parent',ax,'Faces',F,'Vertices',V,'FaceColor',faceColor,...
+        'FaceAlpha',alpha,'EdgeColor',edgeColor,'LineWidth',1.5);
 end
