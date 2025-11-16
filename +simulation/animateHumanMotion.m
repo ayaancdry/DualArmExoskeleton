@@ -1,6 +1,4 @@
 function animateHumanMotion(opts)
-% simulation.animateHumanMotion(opts)
-% opts.saveVideo=false|true, opts.duration=seconds
 
 if nargin<1, opts=struct; end
 if ~isfield(opts,'saveVideo'), opts.saveVideo=false; end

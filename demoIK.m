@@ -1,4 +1,4 @@
-% demoIK.m  — Sample bi-manual IK runs
+% Sample bi-manual IK runs
 clc; clear;
 robot = loadrobot('abbYumi','DataFormat','row');
 
@@ -7,7 +7,7 @@ targets = [ 0.5,  0.2, 0.3;
             0.4, -0.1, 0.4;
             0.6,  0.0, 0.2 ];
 
-fprintf('---- Bi-manual IK Demo ----\n');
+fprintf('Bi-manual IK Demo\n');
 for idx = 1:size(targets,1)
   obj = targets(idx,:)';
   side = 0.05;
