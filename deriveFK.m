@@ -1,16 +1,14 @@
 function deriveFK()
 % kinematics.deriveFK  — Build DH transforms and compute T0_7 for YuMi arm
 
-  %--- DH parameters from your table (i = 1..7) ---
   a     = [-0.03,  0.03,   0.0405, 0.0405, 0.027,  -0.027, 0];
   alpha = deg2rad([-90,    90,    -90,    -90,    -90,    90,     0]);
   d     = [ 0.166,  0,      0.2515, 0,      0.265,  0,      0.036];
-  % θ ranges are irrelevant here; use homeConfiguration(robot) instead:
+
   q_home = homeConfiguration(loadrobot('abbYumi','DataFormat','row'));
 
-  %--- Compute successive transforms ---
   T = eye(4);
-  fprintf('---- Individual DH Transforms (i = 1..7) ----\n');
+  fprintf('Individual DH Transforms (i = 1..7)\n');
   for i = 1:7
     theta = q_home(i);
     A_i = dhTransform(a(i), alpha(i), d(i), theta);
@@ -19,7 +17,7 @@ function deriveFK()
     T = T * A_i;
   end
 
-  fprintf('---- Composite T_0_7 (end-effector) ----\n');
+  fprintf('Composite T_0_7 (end-effector)\n');
   disp(T);
 
 end

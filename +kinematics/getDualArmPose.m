@@ -1,5 +1,5 @@
 function [T_left, T_right, p_left, p_right, Tall] = getDualArmPose(robot, q)
-% kinematics.getDualArmPose  (YuMi, row config)
+% kinematics.getDualArmPose  
 leftEE  = 'yumi_link_7_l';
 rightEE = 'yumi_link_7_r';
 

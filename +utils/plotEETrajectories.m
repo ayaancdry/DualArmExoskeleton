@@ -1,11 +1,4 @@
 function plotEETrajectories(path_left, path_right, object_center)
-% plotEETrajectories Plots the 3D paths of the end-effectors
-%   utils.plotEETrajectories(path_left, path_right, object_center)
-%
-%   Inputs:
-%       path_left:     [Nx3] matrix of left EE (x,y,z) positions
-%       path_right:    [Nx3] matrix of right EE (x,y,z) positions
-%       object_center: [1x3] position of the virtual object
 
 fig = figure('Name', 'End-Effector Trajectories');
 ax = axes('Parent', fig);

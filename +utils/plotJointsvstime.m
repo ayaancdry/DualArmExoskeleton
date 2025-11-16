@@ -1,14 +1,13 @@
 function plotJointsVsTime(t_vec, q_traj, qd_traj)
 % utils.plotJointsVsTime Plots joint angles & velocities vs time
 
-  % Make sure report folder exists
   if ~exist('report','dir')
     mkdir('report');
   end
 
   n_dof_per_arm = 7;
 
-  % --- Positions ---
+  % Positions
   fig3 = figure('Name','Joint Angles vs. Time','Units','normalized','Position',[0.1 0.1 0.8 0.8]);
   for i = 1:n_dof_per_arm
       subplot(n_dof_per_arm,2,2*i-1);
@@ -27,7 +26,7 @@ function plotJointsVsTime(t_vec, q_traj, qd_traj)
   saveas(fig3, out3);
   fprintf('Saved Figure 3 to %s\n', out3);
 
-  % --- Velocities ---
+  % Velocities
   fig4 = figure('Name','Joint Velocities vs. Time','Units','normalized','Position',[0.15 0.15 0.8 0.8]);
   for i = 1:n_dof_per_arm
       subplot(n_dof_per_arm,2,2*i-1);

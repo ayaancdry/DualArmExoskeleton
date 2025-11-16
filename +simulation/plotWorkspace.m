@@ -10,7 +10,7 @@ rightP = zeros(nSamp,3);
 fprintf('Sampling workspace with %d configs...\n', nSamp);
 wb = waitbar(0,'Sampling...');
 for i=1:nSamp
-    q = randomConfiguration(robot);      % 1x14 row
+    q = randomConfiguration(robot);      
     [~,~, pL, pR] = kinematics.getDualArmPose(robot, q);
     leftP(i,:)  = pL';
     rightP(i,:) = pR';

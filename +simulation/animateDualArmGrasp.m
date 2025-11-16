@@ -9,13 +9,13 @@ if ~isfield(opts,'duration'),  opts.duration=20;     end
 robot  = kinematics.createDualArmExo();
 q_home = homeConfiguration(robot);
 
-% ---------- Virtual object (bigger, vivid color, proper box) ----------
+% Virtual object 
 objCenter = [0.55; 0; 0.25];    % push farther and a bit higher
 objW = 0.22;                    % width (y)
 objL = 0.14;                    % length (x)
 objH = 0.10;                    % height (z)
 
-% ---------- Target poses: side approach + small roll to avoid collision ----------
+% Target poses: side approach 
 sideOffsetX = 0.05;               % meters
 pL = objCenter + [ sideOffsetX;  objW/2; 0];
 pR = objCenter + [-sideOffsetX; -objW/2; 0];
@@ -27,23 +27,23 @@ R_R  = eul2rotm([0, -pi/2, -roll]);    % yaw=0, pitch=-90°, roll=-15°
 T_L = eye(4); T_L(1:3,1:3)=R_L; T_L(1:3,4)=pL;
 T_R = eye(4); T_R(1:3,1:3)=R_R; T_R(1:3,4)=pR;
 
-% ---------- Simultaneous IK ----------
+%Simultaneous IK
 fprintf('Bi-Manual IK...\n');
 [q_goal, info] = kinematics.solveBiIK(robot, q_home, T_L, T_R);
 if info.ExitFlag <= 0
     warning('gIK ExitFlag=%d (continuing)', info.ExitFlag);
 end
 
-% ---------- Trajectory params ----------
+% Trajectory params 
 segmentT   = 5; 
 fps        = 30; 
 steps      = segmentT*fps;
 t_samples  = linspace(0, segmentT, steps);
 
-% ---------- Prepare video if requested ----------
+
 [writer, rec] = openVideoIfPossible('report/Animation2_Grasp_YuMi', fps, opts.saveVideo);
 
-% ---------- Figure & object drawing ----------
+
 fig = figure('Name','Animation 2: Bi-Manual Grasp (YuMi)');
 ax  = axes('Parent',fig); cla(ax); hold(ax,'on');
 show(robot, q_home, 'Parent', ax, 'PreservePlot', false, 'Frames','off');
@@ -54,7 +54,7 @@ camlight(ax,'headlight'); lighting(ax,'gouraud');
 
 drawBox(ax, objCenter, [objL objW objH], [0.1 0.7 0.2], 0.6, [0 0 0]);
 
-% ---------- Pre-allocate storage ----------
+
 pathL = zeros(0,3);
 pathR = zeros(0,3);
 allQ  = zeros(0,14);
@@ -91,11 +91,11 @@ while toc(t0) < opts.duration
     end
 end
 
-% ---------- Close video writer ----------
+
 if rec, close(writer); end
 hold(ax,'off');
 
-% ---------- Deliverable plots ----------
+
 utils.plotEETrajectories(pathL, pathR, objCenter);
 
 % Build time vector & compute velocities
@@ -107,7 +107,7 @@ utils.plotJointsVsTime(t_vec, allQ, qd_traj);
 end
 
 
-%% Helper to draw the object box
+
 function drawBox(ax, center, dims, faceColor, alpha, edgeColor)
   Lx=dims(1); Ly=dims(2); Lz=dims(3);
   cx=center(1); cy=center(2); cz=center(3);
